@@ -2,9 +2,10 @@
   "name": "messed-call",
   "version": "1.0.0",
   "description": "Real-time mess management platform",
-  "main": "app.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "serve ."
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "devDependencies": {
     "serve": "^14.2.0"

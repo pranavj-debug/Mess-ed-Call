@@ -181,6 +181,81 @@ a  { text-decoration:none; }
 .suggestion-name  { font-size:0.75rem; font-weight:700; color:var(--charcoal); line-height:1.2; }
 .suggestion-state { font-size:0.6rem; color:var(--charcoal-light); margin-top:2px; }
 
+/* ── NEW: Local-API Dropdown (overlays Leaflet map layer) ─────────── */
+#search-results-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 9999 !important; /* Forces it to sit over the Leaflet map layer */
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 10px 30px -4px rgba(0,0,0,0.12);
+  display: none;
+  flex-direction: column;
+  padding: 4px;
+}
+#search-results-dropdown.open { display: flex; }
+#search-results-dropdown::-webkit-scrollbar { width: 4px; }
+#search-results-dropdown::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+
+/* Suggestion row items */
+.suggestion-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--ease), transform 0.12s ease;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  font-family: var(--font);
+  width: 100%;
+}
+.suggestion-row:last-child { border-bottom: none; }
+.suggestion-row:hover {
+  background: #f8fafc;
+  transform: translateX(2px);
+}
+.suggestion-row:active { background: #f1f5f9; }
+.sug-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--charcoal);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sug-district {
+  font-size: 0.63rem;
+  color: var(--charcoal-light);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+}
+.sug-district::before {
+  content: '📍';
+  font-size: 0.6rem;
+}
+.suggestion-row-empty {
+  padding: 14px 13px;
+  font-size: 0.72rem;
+  color: #9CA3AF;
+  font-style: italic;
+  text-align: center;
+}
+
 /* Student Profile Navbar */
 .topbar-meta   { display:flex; align-items:center; gap:12px; flex-shrink:0; }
 .student-profile { display:flex; align-items:center; gap:8px; padding-right:12px; border-right:1.5px solid #E8E8E8; }

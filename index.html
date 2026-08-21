@@ -153,9 +153,9 @@
       <div class="topbar-college-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#FC8019" stroke-width="2"/><circle cx="12" cy="10" r="3" stroke="#FC8019" stroke-width="2"/></svg>
         <div class="college-search-wrapper">
-          <input type="text" id="college-search-input" placeholder="Search any university/college in India..." autocomplete="off" aria-label="Search University">
+          <input type="text" id="college-search-input" placeholder="Search any college / university in India..." autocomplete="off" aria-label="Search University" aria-autocomplete="list" aria-controls="search-results-dropdown">
           <div class="search-loader" id="search-loader" style="display:none;"></div>
-          <ul class="college-suggestions" id="college-suggestions"></ul>
+          <div id="search-results-dropdown" role="listbox" aria-label="College suggestions"></div>
         </div>
       </div>
 

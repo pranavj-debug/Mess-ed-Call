@@ -95,6 +95,7 @@ const dom = {
   navModePills:       () => document.getElementById("nav-mode-pills"),
   collegeSearchInput: () => document.getElementById("college-search-input"),
   collegeSuggestions: () => document.getElementById("college-suggestions"),
+  searchDropdown:     () => document.getElementById("search-results-dropdown"),
   searchLoader:       () => document.getElementById("search-loader"),
   currentCollegeName: () => document.getElementById("current-college-name"),
   gpsStatusPill:      () => document.getElementById("gps-status-pill"),
@@ -103,6 +104,7 @@ const dom = {
   navStudentName:     () => document.getElementById("nav-student-name"),
   navStudentId:       () => document.getElementById("nav-student-id"),
   devBypassBtn:       () => document.getElementById("dev-bypass-btn"),
+  pinSubmitBtn:       () => document.getElementById("pin-submit-btn"),
 };
 
 // ─── UTILITIES ────────────────────────────────────────────────────────────────
@@ -358,68 +360,143 @@ function logout() {
   showView("gate");
 }
 
-// ─── NOMINATIM OSM API (Nationwide College Search) ────────────────────────────
+// ─── LOCAL BACKEND COLLEGE SEARCH (Partial-match against colleges.json) ───────
 function initAPISearch() {
-  const input = dom.collegeSearchInput();
-  const suggestions = dom.collegeSuggestions();
-  const loader = dom.searchLoader();
-  if (!input || !suggestions) return;
+  const input    = dom.collegeSearchInput();
+  const dropdown = dom.searchDropdown();
+  const loader   = dom.searchLoader();
+  if (!input || !dropdown) return;
 
-  input.addEventListener("input", (e) => {
-    const val = e.target.value.trim();
-    clearTimeout(AppState.searchTimeout);
-    
-    if (val.length < 3) {
-      suggestions.classList.remove("active");
-      if(loader) loader.style.display = "none";
+  /**
+   * Hides the dropdown and clears its content.
+   */
+  function closeDropdown() {
+    dropdown.classList.remove("open");
+    dropdown.innerHTML = "";
+  }
+
+  /**
+   * Renders fetched college rows into the dropdown.
+   * Each row is a <button> with college name (bold) + district beneath it.
+   * Clicking a row: fills input, closes dropdown, geocodes via Nominatim,
+   * pans map, and calls generateLocalMesses().
+   */
+  function renderDropdown(data) {
+    dropdown.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "suggestion-row-empty";
+      empty.textContent = "No colleges found. Try different keywords.";
+      dropdown.appendChild(empty);
+      dropdown.classList.add("open");
       return;
     }
 
-    if(loader) loader.style.display = "block";
-    
+    data.forEach(item => {
+      const btn = document.createElement("button");
+      btn.type      = "button";
+      btn.className = "suggestion-row";
+      btn.setAttribute("role", "option");
+      btn.innerHTML = `
+        <span class="sug-name">${escapeHtml(item.institute_name)}</span>
+        <span class="sug-district">${escapeHtml(item.district || "—")}</span>
+      `;
+
+      btn.addEventListener("click", () => {
+        // 1. Populate the input and close the dropdown
+        input.value = item.institute_name;
+        closeDropdown();
+
+        // 2. Geocode the college via Nominatim to get lat/lng
+        const query = encodeURIComponent(`${item.institute_name} ${item.district} India`);
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`;
+
+        if (loader) loader.style.display = "block";
+
+        fetch(nominatimUrl)
+          .then(r => r.json())
+          .then(geo => {
+            let lat, lng;
+            if (geo && geo.length > 0) {
+              lat = parseFloat(geo[0].lat);
+              lng = parseFloat(geo[0].lon);
+            } else {
+              // Fallback: use current map center or default location
+              const origin = getRoutingOrigin();
+              lat = origin[0];
+              lng = origin[1];
+              console.warn(`Nominatim: could not geocode "${item.institute_name}". Using fallback coords.`);
+            }
+            clearRoute();
+            generateLocalMesses(lat, lng, item.institute_name);
+          })
+          .catch(err => {
+            console.error("Nominatim geocoding error:", err);
+            const origin = getRoutingOrigin();
+            clearRoute();
+            generateLocalMesses(origin[0], origin[1], item.institute_name);
+          })
+          .finally(() => {
+            if (loader) loader.style.display = "none";
+          });
+      });
+
+      dropdown.appendChild(btn);
+    });
+
+    dropdown.classList.add("open");
+  }
+
+  // ── Input listener — debounced fetch to local backend ──────────────────────
+  input.addEventListener("input", () => {
+    const val = input.value.trim();
+    clearTimeout(AppState.searchTimeout);
+
+    // Clear dropdown if query is too short
+    if (val.length < 3) {
+      closeDropdown();
+      if (loader) loader.style.display = "none";
+      return;
+    }
+
+    if (loader) loader.style.display = "block";
+
+    // Debounce: wait 350ms after the user stops typing
     AppState.searchTimeout = setTimeout(async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(val + " university college")}&limit=5`;
-        const res = await fetch(url);
+        const url  = `http://localhost:3000/api/institutions/search?q=${encodeURIComponent(input.value)}`;
+        const res  = await fetch(url);
+        if (!res.ok) throw new Error(`API responded ${res.status}`);
         const data = await res.json();
-        
-        suggestions.innerHTML = "";
-        if (data && data.length > 0) {
-          data.forEach(item => {
-            const li = document.createElement("li");
-            li.className = "suggestion-item";
-            const nameParts = item.display_name.split(",");
-            const mainName = nameParts[0];
-            const subName = nameParts.slice(1, 3).join(", ");
-            
-            li.innerHTML = `<span class="suggestion-name">${escapeHtml(mainName)}</span><span class="suggestion-state">${escapeHtml(subName)}</span>`;
-            li.addEventListener("click", () => {
-              input.value = "";
-              suggestions.classList.remove("active");
-              
-              const lat = parseFloat(item.lat);
-              const lng = parseFloat(item.lon);
-              clearRoute();
-              generateLocalMesses(lat, lng, mainName);
-            });
-            suggestions.appendChild(li);
-          });
-          suggestions.classList.add("active");
-        } else {
-          suggestions.innerHTML = `<li class="suggestion-item"><span class="suggestion-name" style="color:#9CA3AF;">No locations found...</span></li>`;
-          suggestions.classList.add("active");
-        }
+        renderDropdown(data);
       } catch (err) {
-        console.error("OSM API Error:", err);
+        console.error("College search API error:", err);
+        // Show a user-friendly inline error without crashing
+        dropdown.innerHTML = "";
+        const errRow = document.createElement("div");
+        errRow.className = "suggestion-row-empty";
+        errRow.textContent = "⚠️  Could not reach search server. Is it running?";
+        dropdown.appendChild(errRow);
+        dropdown.classList.add("open");
       } finally {
-        if(loader) loader.style.display = "none";
+        if (loader) loader.style.display = "none";
       }
-    }, 600);
+    }, 350);
   });
 
+  // ── Close dropdown on outside click ────────────────────────────────────────
   document.addEventListener("click", (e) => {
-    if (!input.contains(e.target) && !suggestions.contains(e.target)) {
-      suggestions.classList.remove("active");
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  // ── Close dropdown on Escape key ───────────────────────────────────────────
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeDropdown();
+      input.blur();
     }
   });
 }
