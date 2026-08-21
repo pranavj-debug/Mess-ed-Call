@@ -1,129 +1,76 @@
-﻿/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    MESS'ED CALL — app.js
-   Full client-side state engine, QR renderer, Maps integration
+   Dynamic Nominatim API Search · Student Authentication
+   Live GPS Tracking · OSRM Free Routing · Vendor Operations
 ═══════════════════════════════════════════════════════════════ */
 
-// ─── GOOGLE MAPS API KEY ────────────────────────────────────────
-const GOOGLE_MAPS_API_KEY = "YOUR_API_KEY_HERE";
-
-// ─── STUDENT ROSTER (for simulation) ───────────────────────────
-const STUDENT_ROSTER = [
-  { name: "Rahul Sharma",    id: "2022A7PS0001" },
-  { name: "Amit Verma",      id: "2022A7PS0082" },
-  { name: "Priya Nair",      id: "2023A3PS0114" },
-  { name: "Sneha Iyer",      id: "2021A4PS0230" },
-  { name: "Rohan Desai",     id: "2022B2PS0089" },
-  { name: "Karthik Menon",   id: "2023A1PS0045" },
-  { name: "Divya Reddy",     id: "2022A7PS0167" },
-  { name: "Aayush Gupta",    id: "2021B3PS0302" },
-  { name: "Meera Pillai",    id: "2023A2PS0078" },
-  { name: "Tanvir Shaikh",   id: "2022A5PS0199" },
-];
-
-// ─── MESS DATA ──────────────────────────────────────────────────
-const MESS_DATA = [
-  {
-    id: "mess-a",
-    name: "Green Campus Kitchen",
-    emoji: "🍱",
-    rating: 4.85,
-    distance: "120m",
-    isOpen: true,
-    walkInPlates: 20,
-    walkInMax: 20,
-    lat: 28.3671, lng: 73.3239,
-    isVendorMess: true,
-    menu: [
-      { name: "Dal Tadka",         emoji: "🫕", type: "veg" },
-      { name: "Jeera Rice",        emoji: "🍚", type: "veg" },
-      { name: "Aloo Gobi Sabzi",   emoji: "🥔", type: "veg" },
-      { name: "Tandoori Roti",     emoji: "🫓", type: "veg" },
-      { name: "Chicken Curry",     emoji: "🍗", type: "nonveg" },
-      { name: "Mango Raita",       emoji: "🥭", type: "veg" },
-      { name: "Gulab Jamun",       emoji: "🍮", type: "veg" },
-    ],
+// ─── 🗃️ GLOBAL CONFIGURATION MATRIX (Absolute Data Decoupling) ──────────────
+const APP_CONFIG = {
+  initialStates: {
+    pinCode: "1234",
+    defaultWalkInPlates: 20,
+    defaultContractMeals: 0
   },
-  {
-    id: "mess-b",
-    name: "Shanti Mess",
-    emoji: "🍛",
-    rating: 4.60,
-    distance: "350m",
-    isOpen: true,
-    walkInPlates: 14,
-    walkInMax: 25,
-    lat: 28.3685, lng: 73.3255,
-    isVendorMess: false,
-    menu: [
-      { name: "Rajma Masala",    emoji: "🫘", type: "veg" },
-      { name: "Steamed Rice",    emoji: "🍚", type: "veg" },
-      { name: "Palak Paneer",    emoji: "🥬", type: "veg" },
-      { name: "Missi Roti",      emoji: "🫓", type: "veg" },
-      { name: "Mixed Raita",     emoji: "🥛", type: "veg" },
-      { name: "Kheer",           emoji: "🍮", type: "veg" },
-    ],
-  },
-  {
-    id: "mess-c",
-    name: "Rajdhani Thali",
-    emoji: "🥘",
-    rating: 4.40,
-    distance: "620m",
-    isOpen: true,
-    walkInPlates: 8,
-    walkInMax: 15,
-    lat: 28.3658, lng: 73.3270,
-    isVendorMess: false,
-    menu: [
-      { name: "Paneer Butter Masala", emoji: "🧀", type: "veg" },
-      { name: "Butter Naan",          emoji: "🫓", type: "veg" },
-      { name: "Dal Makhani",          emoji: "🫕", type: "veg" },
-      { name: "Mutton Korma",         emoji: "🥩", type: "nonveg" },
-      { name: "Fried Rice",           emoji: "🍚", type: "veg" },
-    ],
-  },
-  {
-    id: "mess-d",
-    name: "Vrindavan Mess",
-    emoji: "🫕",
-    rating: 4.20,
-    distance: "870m",
-    isOpen: false,
-    walkInPlates: 0,
-    walkInMax: 12,
-    lat: 28.3640, lng: 73.3210,
-    isVendorMess: false,
-    menu: [
-      { name: "Chole Bhature",   emoji: "🫘", type: "veg" },
-      { name: "Lassi",           emoji: "🥛", type: "veg" },
-      { name: "Poha",            emoji: "🍚", type: "veg" },
-      { name: "Halwa Puri",      emoji: "🍮", type: "veg" },
-    ],
-  },
-];
-
-// ─── APP STATE ──────────────────────────────────────────────────
-const AppState = {
-  contractMealsToday: 0,
-  walkInAvailable: 20,
-  walkInMax: 20,
-  recentlyEaten: [],
-  tokenCounter: 0,
-  messes: JSON.parse(JSON.stringify(MESS_DATA)), // deep clone
-  mapInstance: null,
-  directionsService: null,
-  directionsRenderer: null,
-  mapMarkers: [],
-  userLocation: { lat: 28.3650, lng: 73.3220 },
-  activeQRToken: null,
+  mockStudents: [
+    { studentId: "STU101", name: "Rahul Sharma", contractMessId: "mess-vendor", mealsRemaining: 30, hasEatenToday: false },
+    { studentId: "STU102", name: "Amit Verma", contractMessId: "mess-vendor", mealsRemaining: 25, hasEatenToday: false },
+    { studentId: "STU103", name: "Priya Nair", contractMessId: "none", mealsRemaining: 0, hasEatenToday: false },
+    { studentId: "STU104", name: "Sneha Iyer", contractMessId: "mess-other", mealsRemaining: 15, hasEatenToday: false }
+  ],
+  dynamicMesses: [] // Populated by generateLocalMesses()
 };
 
-// ─── DOM REFS ───────────────────────────────────────────────────
+// ─── APPLICATION STATE ────────────────────────────────────────────────────────
+const AppState = {
+  currentRole: null,
+  activeStudent: null, // Holds object from APP_CONFIG.mockStudents
+  pinPanelOpen: false,
+  studentPanelOpen: false,
+
+  // Vendor State
+  contractMealsToday: APP_CONFIG.initialStates.defaultContractMeals,
+  recentlyEaten: [],
+  tokenCounter: 0,
+  activeQRToken: null,
+  walkInAvailable: APP_CONFIG.initialStates.defaultWalkInPlates,
+  walkInMax: APP_CONFIG.initialStates.defaultWalkInPlates,
+  rerouteShown: false,
+
+  // Consumer/Map State
+  liveMesses: [], 
+  activeLocationName: "Fetching...",
+  leafletMap: null,
+  leafletMarkers: [],
+  routingControl: null,
+  activeMessId: null,
+  navMode: "foot", // "foot" | "bike" | "car"
+  gpsCoords: null, // [lat, lng]
+  gpsActive: false,
+  isDevBypassMode: false,
+  
+  searchTimeout: null,
+};
+
+// ─── DOM ACCESSORS ────────────────────────────────────────────────────────────
 const dom = {
+  roleGateScreen:     () => document.getElementById("role-gate-screen"),
+  customerView:       () => document.getElementById("customer-view"),
+  vendorView:         () => document.getElementById("vendor-view"),
+  gateOwnerBtn:       () => document.getElementById("gate-owner-btn"),
+  gateCustomerBtn:    () => document.getElementById("gate-customer-btn"),
+  pinPanel:           () => document.getElementById("pin-panel"),
+  pinInput:           () => document.getElementById("pin-input"),
+  studentPanel:       () => document.getElementById("student-login-panel"),
+  studentIdInput:     () => document.getElementById("student-id-input"),
+  contractIdInput:    () => document.getElementById("contract-id-input"),
+  studentErrorMsg:    () => document.getElementById("student-error-msg"),
+  pinErrorMsg:        () => document.getElementById("pin-error-msg"),
   contractCount:      () => document.getElementById("contract-count"),
   walkinCount:        () => document.getElementById("walkin-count"),
   walkinProgress:     () => document.getElementById("walkin-progress"),
   walkinStatusText:   () => document.getElementById("walkin-status-text"),
+  walkinPctText:      () => document.getElementById("walkin-pct-text"),
+  walkinSoldBanner:   () => document.getElementById("walkin-sold-indicator"),
   feedTbody:          () => document.getElementById("feed-tbody"),
   feedEmptyRow:       () => document.getElementById("feed-empty-row"),
   feedCountBadge:     () => document.getElementById("feed-count-badge"),
@@ -140,315 +87,619 @@ const dom = {
   messCardsList:      () => document.getElementById("mess-cards-list"),
   rerouteToast:       () => document.getElementById("reroute-toast"),
   toastMsg:           () => document.getElementById("toast-msg"),
-  toastCloseBtn:      () => document.getElementById("toast-close-btn"),
-  liveClock:          () => document.getElementById("live-clock"),
-  liveDate:           () => document.getElementById("live-date"),
-  mapPlaceholder:     () => document.getElementById("map-placeholder"),
+  mapCanvas:          () => document.getElementById("map-canvas"),
+  routeInfoBar:       () => document.getElementById("route-info-bar"),
+  routeDestination:   () => document.getElementById("route-destination"),
+  routeDistance:      () => document.getElementById("route-distance"),
+  routeDuration:      () => document.getElementById("route-duration"),
+  navModePills:       () => document.getElementById("nav-mode-pills"),
+  collegeSearchInput: () => document.getElementById("college-search-input"),
+  collegeSuggestions: () => document.getElementById("college-suggestions"),
+  searchLoader:       () => document.getElementById("search-loader"),
+  currentCollegeName: () => document.getElementById("current-college-name"),
+  gpsStatusPill:      () => document.getElementById("gps-status-pill"),
+  gpsStatusText:      () => document.getElementById("gps-status-text"),
+  navStudentAvatar:   () => document.getElementById("nav-student-avatar"),
+  navStudentName:     () => document.getElementById("nav-student-name"),
+  navStudentId:       () => document.getElementById("nav-student-id"),
+  devBypassBtn:       () => document.getElementById("dev-bypass-btn"),
 };
 
-// ─── UTILITIES ──────────────────────────────────────────────────
-function nowTimeStr() {
-  const d = new Date();
-  return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-}
-function nowDateStr() {
-  const d = new Date();
-  return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
-}
+// ─── UTILITIES ────────────────────────────────────────────────────────────────
+function nowTimeStr() { return new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }); }
+function nowDateStr() { return new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }); }
 function padNum(n, len = 4) { return String(n).padStart(len, "0"); }
-function animateCounter(el) {
-  el.classList.remove("counter-pop");
-  void el.offsetWidth;
-  el.classList.add("counter-pop");
-}
+function escapeHtml(str) { const d = document.createElement("div"); d.appendChild(document.createTextNode(String(str))); return d.innerHTML; }
+function animateCounter(el) { if (!el) return; el.classList.remove("counter-pop"); void el.offsetWidth; el.classList.add("counter-pop"); }
 function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-// ─── LIVE CLOCK ─────────────────────────────────────────────────
-function tickClock() {
-  const d = new Date();
-  dom.liveClock().textContent = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
-  dom.liveDate().textContent = d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
-}
-setInterval(tickClock, 1000);
-tickClock();
+// ─── DYNAMIC MESS GENERATION (Absolute Decoupling) ────────────────────────────
+function generateLocalMesses(lat, lng, locationName) {
+  AppState.activeLocationName = locationName;
+  const nameEl = dom.currentCollegeName();
+  if (nameEl) nameEl.textContent = locationName;
 
-// ─── QR CODE RENDERER ───────────────────────────────────────────
-// Pure-canvas QR-style graphic (no external lib needed for demo)
-function drawQROnCanvas(canvas, tokenStr) {
-  const ctx = canvas.getContext("2d");
-  const size = canvas.width;
-  ctx.clearRect(0, 0, size, size);
+  // Generate 3 localized messes within ~5km radius using slight lat/lng offsets
+  APP_CONFIG.dynamicMesses = [
+    {
+      id: "mess-vendor",
+      name: "Owner's Primary Kitchen",
+      emoji: "🍱",
+      baselineRating: 4.85,
+      distanceOffset: "120m",
+      lat: lat + 0.003,
+      lng: lng - 0.005,
+      isVendorMess: true,
+      isOpen: true,
+      walkInPlates: AppState.walkInAvailable,
+      menu: [
+        { name: "Dal Tadka", emoji: "🫕", type: "veg" },
+        { name: "Jeera Rice", emoji: "🍚", type: "veg" },
+        { name: "Chicken Curry", emoji: "🍗", type: "nonveg" }
+      ]
+    },
+    {
+      id: "mess-other-1",
+      name: "Student Thali Center",
+      emoji: "🍛",
+      baselineRating: 4.50,
+      distanceOffset: "450m",
+      lat: lat - 0.004,
+      lng: lng + 0.002,
+      isVendorMess: false,
+      isOpen: true,
+      walkInPlates: 15,
+      menu: [
+        { name: "Rajma Masala", emoji: "🫘", type: "veg" },
+        { name: "Palak Paneer", emoji: "🥬", type: "veg" }
+      ]
+    },
+    {
+      id: "mess-other-2",
+      name: "Late Night Bites",
+      emoji: "🥘",
+      baselineRating: 4.20,
+      distanceOffset: "920m",
+      lat: lat + 0.005,
+      lng: lng + 0.006,
+      isVendorMess: false,
+      isOpen: true,
+      walkInPlates: 5,
+      menu: [
+        { name: "Chole Bhature", emoji: "🫘", type: "veg" },
+        { name: "Lassi", emoji: "🥛", type: "veg" }
+      ]
+    }
+  ];
 
-  // Background
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, size, size);
+  AppState.liveMesses = APP_CONFIG.dynamicMesses;
 
-  // Deterministic noise grid from token string
-  const cellSize = 10;
-  const cols = Math.floor(size / cellSize);
-  const rows = Math.floor(size / cellSize);
-  let seed = 0;
-  for (let i = 0; i < tokenStr.length; i++) seed += tokenStr.charCodeAt(i) * (i + 1);
-
-  function seededRand(x, y) {
-    const n = Math.sin(seed + x * 127.1 + y * 311.7) * 43758.5453123;
-    return n - Math.floor(n);
+  renderLeaderboard();
+  renderMessCards();
+  
+  if (AppState.leafletMap) {
+    AppState.leafletMap.setView([lat, lng], 14);
+    updateLeafletMarkers();
   }
+}
 
-  // Draw QR-like grid
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const val = seededRand(c, r);
-      // Leave corners blank for position markers
-      const inCornerTL = c < 8 && r < 8;
-      const inCornerTR = c >= cols - 8 && r < 8;
-      const inCornerBL = c < 8 && r >= rows - 8;
-      if (inCornerTL || inCornerTR || inCornerBL) continue;
-      if (val > 0.45) {
-        ctx.fillStyle = "#1C1C2E";
-        ctx.fillRect(c * cellSize + 1, r * cellSize + 1, cellSize - 2, cellSize - 2);
-      }
+// ─── VIEW ROUTER ──────────────────────────────────────────────────────────────
+function showView(viewName) {
+  const gateEl = dom.roleGateScreen();
+  const custEl = dom.customerView();
+  const vendEl = dom.vendorView();
+
+  // Clean CSS state class manipulation for forcing DOM visibility
+  if (gateEl) {
+    gateEl.style.display = "none";
+  }
+  if (custEl) { 
+    custEl.classList.remove("active"); 
+    custEl.setAttribute("aria-hidden", "true"); 
+    custEl.style.display = ""; // Clear any inline blocks 
+  }
+  if (vendEl) { 
+    vendEl.classList.remove("active"); 
+    vendEl.setAttribute("aria-hidden", "true"); 
+    vendEl.style.display = ""; 
+  }
+  
+  window.scrollTo(0, 0);
+
+  if (viewName === "gate") {
+    if (gateEl) gateEl.style.display = "flex";
+  } else if (viewName === "customer") {
+    if (custEl) { 
+      custEl.classList.add("active"); 
+      custEl.removeAttribute("aria-hidden"); 
+      custEl.style.display = "flex"; // Hard force visibility
+    }
+    
+    // Set Profile
+    if (AppState.activeStudent) {
+      dom.navStudentName().textContent = AppState.activeStudent.name;
+      dom.navStudentId().textContent = AppState.activeStudent.studentId;
+      dom.navStudentAvatar().textContent = AppState.activeStudent.name.charAt(0);
+    }
+    
+    // Bypass GPS completely if in Dev Bypass mode to prevent freezing
+    if (AppState.isDevBypassMode) {
+      const pill = dom.gpsStatusPill(); if (pill) pill.className = "live-pill";
+      const text = dom.gpsStatusText(); if (text) text.textContent = "GPS MOCKED";
+      generateLocalMesses(19.1334, 72.9133, "DEV BYPASS MOCK LOCATION");
+      initLeafletMap();
+    } else {
+      startGPSStream(); // Initiates GPS -> Map -> generateLocalMesses
+    }
+
+  } else if (viewName === "vendor") {
+    if (vendEl) { 
+      vendEl.classList.add("active"); 
+      vendEl.removeAttribute("aria-hidden"); 
+      vendEl.style.display = "flex"; // Hard force visibility
     }
   }
-
-  // Draw position finder squares (3 corners)
-  function drawFinder(cx, cy) {
-    const s = cellSize;
-    // Outer black square
-    ctx.fillStyle = "#1C1C2E";
-    ctx.fillRect(cx, cy, s * 7, s * 7);
-    // White inner
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(cx + s, cy + s, s * 5, s * 5);
-    // Black center
-    ctx.fillStyle = "#1C1C2E";
-    ctx.fillRect(cx + s * 2, cy + s * 2, s * 3, s * 3);
-  }
-  drawFinder(0, 0);
-  drawFinder((cols - 7) * cellSize, 0);
-  drawFinder(0, (rows - 7) * cellSize);
-
-  // Orange accent line at bottom
-  ctx.fillStyle = "#FC8019";
-  ctx.fillRect(0, size - 6, size, 6);
-
-  // Token text watermark
-  ctx.fillStyle = "rgba(28,28,46,0.25)";
-  ctx.font = "bold 9px monospace";
-  ctx.textAlign = "center";
-  ctx.fillText(tokenStr, size / 2, size - 12);
 }
 
-// ─── QR MODAL ───────────────────────────────────────────────────
-function openQRModal() {
-  AppState.tokenCounter += 1;
-  const tokenStr = `MC-${padNum(AppState.tokenCounter)}-${nowDateStr().replace(/[, ]/g, "").toUpperCase()}`;
-  AppState.activeQRToken = tokenStr;
-
-  dom.tokenIdDisplay().textContent = `TOKEN #${padNum(AppState.tokenCounter)}`;
-  dom.tokenDateDisplay().textContent = `${nowDateStr()} — ${nowTimeStr()}`;
-
-  // Show ring, then draw QR
-  dom.qrLoadingRing().classList.remove("hidden");
-  const canvas = dom.qrCanvas();
-  canvas.style.opacity = "0";
-
-  setTimeout(() => {
-    drawQROnCanvas(canvas, tokenStr);
-    canvas.style.transition = "opacity 0.3s";
-    canvas.style.opacity = "1";
-    dom.qrLoadingRing().classList.add("hidden");
-  }, 600);
-
-  dom.qrModalOverlay().classList.add("active");
+// ─── ROLE GATE & AUTHENTICATION ───────────────────────────────────────────────
+function showOwnerPanel() {
+  AppState.pinPanelOpen = true;
+  AppState.studentPanelOpen = false;
+  dom.pinPanel()?.classList.add("open");
+  dom.studentPanel()?.classList.remove("open");
+  dom.gateOwnerBtn()?.classList.add("selected");
+  dom.gateCustomerBtn()?.classList.remove("selected");
+  setTimeout(() => dom.pinInput()?.focus(), 300);
 }
 
-function closeQRModal() {
-  dom.qrModalOverlay().classList.remove("active");
+function showCustomerPanel() {
+  AppState.studentPanelOpen = true;
+  AppState.pinPanelOpen = false;
+  dom.studentPanel()?.classList.add("open");
+  dom.pinPanel()?.classList.remove("open");
+  dom.gateCustomerBtn()?.classList.add("selected");
+  dom.gateOwnerBtn()?.classList.remove("selected");
+  setTimeout(() => dom.studentIdInput()?.focus(), 300);
 }
 
-// ─── SIMULATE SCAN ──────────────────────────────────────────────
-function simulateScan() {
-  closeQRModal();
-
-  const student = randomFrom(STUDENT_ROSTER);
-  const token = AppState.activeQRToken || `MC-${padNum(AppState.tokenCounter)}`;
-
-  // Update state
-  AppState.contractMealsToday += 1;
-
-  // Update counter
-  const el = dom.contractCount();
-  el.textContent = AppState.contractMealsToday;
-  animateCounter(el);
-
-  // Log to feed
-  addFeedRow(student.name, token, nowTimeStr());
-}
-
-// ─── FEED TABLE ─────────────────────────────────────────────────
-function addFeedRow(studentName, token, time) {
-  const tbody = dom.feedTbody();
-  const emptyRow = dom.feedEmptyRow();
-  if (emptyRow) emptyRow.remove();
-
-  const idx = AppState.recentlyEaten.length + 1;
-  AppState.recentlyEaten.unshift({ name: studentName, token, time });
-
-  const tr = document.createElement("tr");
-  tr.className = "feed-new-row";
-  tr.innerHTML = `
-    <td>${idx}</td>
-    <td class="feed-student-name">${studentName}</td>
-    <td class="feed-token">${token}</td>
-    <td class="feed-time">${time}</td>
-  `;
-  tbody.insertBefore(tr, tbody.firstChild);
-
-  dom.feedCountBadge().textContent = AppState.recentlyEaten.length;
-}
-
-// ─── CONTRACT MINUS ─────────────────────────────────────────────
-function contractMinus() {
-  if (AppState.contractMealsToday <= 0) return;
-  AppState.contractMealsToday -= 1;
-  const el = dom.contractCount();
-  el.textContent = AppState.contractMealsToday;
-  animateCounter(el);
-}
-
-// ─── WALK-IN POOL ───────────────────────────────────────────────
-const WALKIN_MAX = 20;
-
-function updateWalkInUI() {
-  const count = AppState.walkInAvailable;
-  const el = dom.walkinCount();
-  el.textContent = count;
-  animateCounter(el);
-
-  const pct = Math.max(0, (count / WALKIN_MAX) * 100);
-  const bar = dom.walkinProgress();
-  bar.style.width = pct + "%";
-
-  if (count <= 0) {
-    bar.classList.add("danger");
-    dom.walkinStatusText().textContent = "Sold out!";
-  } else if (count <= 5) {
-    bar.classList.add("danger");
-    dom.walkinStatusText().textContent = `Only ${count} left — hurry!`;
+function submitOwnerPin() {
+  const input = dom.pinInput();
+  if (!input) return;
+  if (input.value.trim() === APP_CONFIG.initialStates.pinCode) {
+    input.style.borderColor = "#22C55E";
+    input.style.boxShadow = "0 0 0 3px rgba(34,197,94,0.2)";
+    dom.pinErrorMsg().textContent = "";
+    setTimeout(() => {
+      AppState.currentRole = "owner";
+      showView("vendor");
+      input.value = ""; input.style.borderColor = ""; input.style.boxShadow = "";
+    }, 300);
   } else {
-    bar.classList.remove("danger");
-    dom.walkinStatusText().textContent = count >= WALKIN_MAX ? "Fully stocked" : `${count} of ${WALKIN_MAX} remaining`;
-  }
-
-  // Sync vendor mess (mess-a) consumer card
-  const vendorMess = AppState.messes.find(m => m.isVendorMess);
-  if (vendorMess) {
-    vendorMess.walkInPlates = count;
-    renderMessCards();
-    if (count <= 0) triggerSoldOutFlow(vendorMess);
+    input.classList.add("error");
+    dom.pinErrorMsg().textContent = "Incorrect PIN. Try again.";
+    setTimeout(() => input.classList.remove("error"), 500);
+    input.value = ""; input.focus();
   }
 }
 
-function walkinPlus() {
-  AppState.walkInAvailable = Math.min(AppState.walkInAvailable + 1, WALKIN_MAX);
-  updateWalkInUI();
+function submitStudentLogin() {
+  const idInput = dom.studentIdInput();
+  if (!idInput) return;
+  const idVal = idInput.value.trim().toUpperCase();
+  if (!idVal) return;
+  
+  let student = APP_CONFIG.mockStudents.find(s => s.studentId === idVal);
+  
+  // AUTO-REGISTRATION FAIL-SAFE LOGIC
+  if (!student) {
+    student = {
+      studentId: idVal,
+      name: idVal,
+      contractMessId: "MESS_A",
+      mealsRemaining: 30,
+      hasEatenToday: false
+    };
+    APP_CONFIG.mockStudents.push(student);
+  }
+  
+  idInput.style.borderColor = "#22C55E";
+  const errEl = dom.studentErrorMsg();
+  if (errEl) errEl.textContent = "";
+  
+  setTimeout(() => {
+    AppState.activeStudent = student;
+    AppState.currentRole = "customer";
+    AppState.isDevBypassMode = false;
+    showView("customer");
+    idInput.value = ""; 
+    const contractInput = dom.contractIdInput();
+    if (contractInput) contractInput.value = ""; 
+    idInput.style.borderColor = "";
+  }, 300);
 }
 
-function walkinMinus() {
-  if (AppState.walkInAvailable <= 0) return;
-  AppState.walkInAvailable -= 1;
-  updateWalkInUI();
+// ─── IRONCLAD DEVELOPER BYPASS ────────────────────────────────────────────────
+function executeDevBypass() {
+  // 1. Instantly hide the Role Gate unconditionally
+  const gateEl = dom.roleGateScreen();
+  if (gateEl) gateEl.style.display = "none";
+  
+  // 2. Automatically initialize a valid global user session object
+  const devSession = { 
+    studentId: "DEV_GUEST", 
+    name: "Developer Mode User", 
+    contractMessId: "MESS_A", 
+    mealsRemaining: 99, 
+    hasEatenToday: false 
+  };
+  
+  // 3. Inject it into the state array & set active session
+  APP_CONFIG.mockStudents.push(devSession);
+  AppState.activeStudent = devSession;
+  AppState.currentRole = "customer";
+  
+  // 4. Set bypass flag to skip geolocation blocking
+  AppState.isDevBypassMode = true;
+  
+  // 5. Force the dashboard containers to render
+  showView("customer");
 }
 
-// ─── SOLD OUT FLOW ──────────────────────────────────────────────
-let rerouteShown = false;
-function triggerSoldOutFlow(soldMess) {
-  if (rerouteShown) return;
-  rerouteShown = true;
-
-  // Find next available mess
-  const nextMess = AppState.messes.find(m => !m.isVendorMess && m.isOpen && m.walkInPlates > 0);
-  const nextName = nextMess ? nextMess.name : "Shanti Mess";
-  const nextRating = nextMess ? nextMess.rating.toFixed(1) : "4.6";
-  const nextDist = nextMess ? nextMess.distance : "350m";
-
-  dom.toastMsg().textContent =
-    `${soldMess.name} walk-in plates are finished! Automatically rerouting your search to ${nextName} (${nextRating}★) — ${nextDist} away with food available!`;
-
-  const toast = dom.rerouteToast();
-  toast.classList.add("visible");
-
-  // Auto-hide after 8 seconds
-  setTimeout(() => toast.classList.remove("visible"), 8000);
+function logout() {
+  AppState.currentRole = null;
+  AppState.pinPanelOpen = false;
+  AppState.studentPanelOpen = false;
+  AppState.isDevBypassMode = false;
+  
+  dom.pinPanel()?.classList.remove("open");
+  dom.studentPanel()?.classList.remove("open");
+  dom.gateOwnerBtn()?.classList.remove("selected");
+  dom.gateCustomerBtn()?.classList.remove("selected");
+  showView("gate");
 }
 
-function resetReroute() {
-  rerouteShown = false;
-  dom.rerouteToast().classList.remove("visible");
+// ─── NOMINATIM OSM API (Nationwide College Search) ────────────────────────────
+function initAPISearch() {
+  const input = dom.collegeSearchInput();
+  const suggestions = dom.collegeSuggestions();
+  const loader = dom.searchLoader();
+  if (!input || !suggestions) return;
+
+  input.addEventListener("input", (e) => {
+    const val = e.target.value.trim();
+    clearTimeout(AppState.searchTimeout);
+    
+    if (val.length < 3) {
+      suggestions.classList.remove("active");
+      if(loader) loader.style.display = "none";
+      return;
+    }
+
+    if(loader) loader.style.display = "block";
+    
+    AppState.searchTimeout = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(val + " university college")}&limit=5`;
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        suggestions.innerHTML = "";
+        if (data && data.length > 0) {
+          data.forEach(item => {
+            const li = document.createElement("li");
+            li.className = "suggestion-item";
+            const nameParts = item.display_name.split(",");
+            const mainName = nameParts[0];
+            const subName = nameParts.slice(1, 3).join(", ");
+            
+            li.innerHTML = `<span class="suggestion-name">${escapeHtml(mainName)}</span><span class="suggestion-state">${escapeHtml(subName)}</span>`;
+            li.addEventListener("click", () => {
+              input.value = "";
+              suggestions.classList.remove("active");
+              
+              const lat = parseFloat(item.lat);
+              const lng = parseFloat(item.lon);
+              clearRoute();
+              generateLocalMesses(lat, lng, mainName);
+            });
+            suggestions.appendChild(li);
+          });
+          suggestions.classList.add("active");
+        } else {
+          suggestions.innerHTML = `<li class="suggestion-item"><span class="suggestion-name" style="color:#9CA3AF;">No locations found...</span></li>`;
+          suggestions.classList.add("active");
+        }
+      } catch (err) {
+        console.error("OSM API Error:", err);
+      } finally {
+        if(loader) loader.style.display = "none";
+      }
+    }, 600);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+      suggestions.classList.remove("active");
+    }
+  });
 }
 
-// ─── MESS CARDS RENDERER ────────────────────────────────────────
+// ─── LIVE GPS TRACKING ────────────────────────────────────────────────────────
+function startGPSStream() {
+  const pill = dom.gpsStatusPill();
+  const text = dom.gpsStatusText();
+  
+  if (!navigator.geolocation) {
+    if (pill) pill.className = "live-pill";
+    if (text) text.textContent = "GPS OFF";
+    generateLocalMesses(19.1334, 72.9133, "IIT Bombay (Fallback)");
+    initLeafletMap();
+    return;
+  }
+
+  if (pill) pill.className = "live-pill seeking";
+  if (text) text.textContent = "SEEKING GPS";
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      AppState.gpsCoords = [pos.coords.latitude, pos.coords.longitude];
+      AppState.gpsActive = true;
+      if (pill) pill.className = "live-pill active";
+      if (text) text.textContent = "GPS LIVE";
+      
+      if(AppState.liveMesses.length === 0) {
+        generateLocalMesses(pos.coords.latitude, pos.coords.longitude, "Your Current Location");
+      }
+      initLeafletMap();
+    },
+    (err) => {
+      console.warn("GPS Denied. Falling back to default center.", err);
+      AppState.gpsCoords = null;
+      AppState.gpsActive = false;
+      if (pill) pill.className = "live-pill";
+      if (text) text.textContent = "GPS OFF";
+      
+      if(AppState.liveMesses.length === 0) {
+        generateLocalMesses(19.1334, 72.9133, "IIT Bombay (Fallback)");
+      }
+      initLeafletMap();
+    },
+    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+  );
+}
+
+function getRoutingOrigin() {
+  if (AppState.gpsActive && AppState.gpsCoords) return AppState.gpsCoords;
+  if (AppState.liveMesses.length > 0) return [AppState.liveMesses[0].lat, AppState.liveMesses[0].lng]; 
+  return [19.1334, 72.9133]; 
+}
+
+// ─── LEAFLET & OSRM FREE ROUTING MAP ──────────────────────────────────────────
+function initLeafletMap() {
+  if (AppState.leafletMap) {
+    updateLeafletMarkers();
+    return;
+  }
+
+  const mapEl = dom.mapCanvas();
+  if (!mapEl || typeof L === "undefined") return;
+
+  const origin = getRoutingOrigin();
+  
+  AppState.leafletMap = L.map("map-canvas", {
+    center: origin,
+    zoom: 14,
+    zoomControl: true,
+    attributionControl: true
+  });
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 19,
+  }).addTo(AppState.leafletMap);
+
+  updateLeafletMarkers();
+}
+
+function updateLeafletMarkers() {
+  if (!AppState.leafletMap) return;
+
+  AppState.leafletMarkers.forEach(item => AppState.leafletMap.removeLayer(item.marker));
+  AppState.leafletMarkers = [];
+
+  const map = AppState.leafletMap;
+  const origin = getRoutingOrigin();
+
+  const userIcon = L.divIcon({
+    className: "",
+    html: `<div style="width:18px;height:18px;background:#2563EB;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,0.5);position:relative;"></div>`,
+    iconSize: [18, 18], iconAnchor: [9, 9]
+  });
+  
+  const userMarker = L.marker(origin, { icon: userIcon }).addTo(map)
+    .bindPopup(`<div style="font-family:Inter,sans-serif;font-size:13px;"><strong>&#128205; You are here</strong></div>`);
+  AppState.leafletMarkers.push({ marker: userMarker, type: "user" });
+
+  AppState.liveMesses.forEach(mess => {
+    const accentColor = mess.isVendorMess ? "#FC8019" : (mess.isOpen ? "#22C55E" : "#EF4444");
+    const messIcon = L.divIcon({
+      className: "",
+      html: `<div style="background:#fff;border:2.5px solid ${accentColor};border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 3px 12px ${accentColor}55;">${mess.emoji}</div>`,
+      iconSize: [40, 40], iconAnchor: [20, 20]
+    });
+    const marker = L.marker([mess.lat, mess.lng], { icon: messIcon }).addTo(map);
+    marker.bindPopup(`<div style="font-family:Inter,sans-serif;font-size:12px;"><strong>${escapeHtml(mess.name)}</strong><br/><button onclick="navigateTo('${mess.id}')" style="margin-top:5px;background:#282C3F;color:#fff;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;">Navigate</button></div>`);
+    AppState.leafletMarkers.push({ marker, type: "mess", id: mess.id });
+  });
+}
+
+function setNavMode(mode) {
+  AppState.navMode = mode;
+  document.querySelectorAll(".nav-pill").forEach(pill => {
+    const isActive = pill.getAttribute("data-mode") === mode;
+    pill.classList.toggle("active", isActive);
+    pill.setAttribute("aria-pressed", String(isActive));
+  });
+  if (AppState.activeMessId) navigateTo(AppState.activeMessId);
+}
+
+function navigateTo(messId) {
+  const mess = AppState.liveMesses.find(m => m.id === messId);
+  if (!mess) return;
+  if (!AppState.leafletMap) initLeafletMap();
+
+  AppState.activeMessId = messId;
+  const mapSection = document.getElementById("map-section");
+  if (mapSection) mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  document.querySelectorAll(".btn-navigate").forEach(btn => btn.classList.remove("active-nav"));
+  const activeBtn = document.querySelector(`[data-mess-id="${messId}"] .btn-navigate`);
+  if (activeBtn) activeBtn.classList.add("active-nav");
+
+  const osrmProfiles = { foot: "foot", bike: "bike", car: "driving" };
+  const serviceUrl = `https://router.project-osrm.org/route/v1/${osrmProfiles[AppState.navMode]}/`;
+  const colors = { foot: "#22C55E", bike: "#FC8019", car: "#2563EB" };
+
+  if (AppState.routingControl) {
+    if (typeof AppState.routingControl.remove === 'function' && AppState.routingControl._fallbackLine) {
+       AppState.routingControl.remove();
+    } else {
+       AppState.leafletMap.removeControl(AppState.routingControl);
+    }
+    AppState.routingControl = null;
+  }
+
+  const origin = getRoutingOrigin();
+
+  const rc = L.Routing.control({
+    waypoints: [L.latLng(origin[0], origin[1]), L.latLng(mess.lat, mess.lng)],
+    router: L.Routing.osrmv1({ serviceUrl: serviceUrl, profile: osrmProfiles[AppState.navMode] }),
+    lineOptions: { styles: [{ color: colors[AppState.navMode], weight: 5, opacity: 0.85 }, { color: "#fff", weight: 8, opacity: 0.3 }], extendToWaypoints: true, missingRouteTolerance: 0 },
+    createMarker: () => null,
+    addWaypoints: false, routeWhileDragging: false, show: false, fitSelectedRoutes: true
+  }).addTo(AppState.leafletMap);
+
+  rc.on("routesfound", (e) => {
+    const r = e.routes[0].summary;
+    const info = dom.routeInfoBar(); if (info) info.style.display = "flex";
+    const dest = dom.routeDestination(); if (dest) dest.textContent = `Route to ${mess.name}`;
+    const dist = dom.routeDistance(); if (dist) dist.textContent = r.totalDistance < 1000 ? Math.round(r.totalDistance) + "m" : (r.totalDistance/1000).toFixed(1) + "km";
+    const dur = dom.routeDuration(); if (dur) dur.textContent = Math.round(r.totalTime/60) + " min";
+  });
+
+  rc.on("routingerror", () => {
+    if (AppState.routingControl) AppState.leafletMap.removeControl(AppState.routingControl);
+    const line = L.polyline([origin, [mess.lat, mess.lng]], { color: colors[AppState.navMode], weight: 4, dashArray: "8,8" }).addTo(AppState.leafletMap);
+    AppState.leafletMap.fitBounds(line.getBounds(), { padding: [40, 40] });
+    AppState.routingControl = { _fallbackLine: line, remove: () => AppState.leafletMap.removeLayer(line) };
+    const info = dom.routeInfoBar(); if (info) info.style.display = "flex";
+    const dest = dom.routeDestination(); if (dest) dest.textContent = `Route to ${mess.name}`;
+    const dist = dom.routeDistance(); if (dist) dist.textContent = "Straight line";
+    const dur = dom.routeDuration(); if (dur) dur.textContent = "ETA unknown";
+  });
+
+  AppState.routingControl = rc;
+}
+window.navigateTo = navigateTo;
+
+function clearRoute() {
+  if (AppState.routingControl) {
+    if (typeof AppState.routingControl.remove === 'function' && AppState.routingControl._fallbackLine) {
+       AppState.routingControl.remove();
+    } else {
+       AppState.leafletMap.removeControl(AppState.routingControl);
+    }
+    AppState.routingControl = null;
+  }
+  AppState.activeMessId = null;
+  document.querySelectorAll(".btn-navigate").forEach(b => b.classList.remove("active-nav"));
+  const info = dom.routeInfoBar(); if (info) info.style.display = "none";
+}
+
+// ─── CONSUMER UI RENDERING ────────────────────────────────────────────────────
+function renderLeaderboard() {
+  const container = document.getElementById("podium-container");
+  if (!container || AppState.liveMesses.length < 3) return;
+  const sorted = [...AppState.liveMesses].sort((a,b) => b.baselineRating - a.baselineRating);
+  const m1 = sorted[0]; const m2 = sorted[1]; const m3 = sorted[2];
+  
+  container.innerHTML = `
+    <div class="podium-card silver">
+      <div class="podium-rank silver-rank">2</div><div class="podium-avatar">${m2.emoji}</div>
+      <div class="podium-name">${escapeHtml(m2.name)}</div>
+      <div class="podium-rating"><span class="podium-star orange-star">&#9733;</span><span class="podium-score">${m2.baselineRating.toFixed(2)}</span><span class="podium-max">/ 5.0</span></div>
+      <div class="podium-pillar silver-pillar">2<sup>nd</sup></div>
+    </div>
+    <div class="podium-card gold">
+      <div class="podium-crown">&#128081;</div><div class="podium-rank gold-rank">1</div><div class="podium-avatar">${m1.emoji}</div>
+      <div class="podium-name">${escapeHtml(m1.name)}</div>
+      <div class="podium-rating"><span class="podium-star gold-star">&#9733;</span><span class="podium-score">${m1.baselineRating.toFixed(2)}</span><span class="podium-max">/ 5.0</span></div>
+      <div class="podium-pillar gold-pillar">1<sup>st</sup></div>
+    </div>
+    <div class="podium-card bronze">
+      <div class="podium-rank bronze-rank">3</div><div class="podium-avatar">${m3.emoji}</div>
+      <div class="podium-name">${escapeHtml(m3.name)}</div>
+      <div class="podium-rating"><span class="podium-star orange-star">&#9733;</span><span class="podium-score">${m3.baselineRating.toFixed(2)}</span><span class="podium-max">/ 5.0</span></div>
+      <div class="podium-pillar bronze-pillar">3<sup>rd</sup></div>
+    </div>
+  `;
+}
+
 function renderMessCards() {
   const container = dom.messCardsList();
   if (!container) return;
-
+  
   container.innerHTML = "";
-  AppState.messes.forEach(mess => {
-    const isSoldOut = mess.isOpen && mess.walkInPlates === 0;
-    const isClosedFully = !mess.isOpen;
+  
+  AppState.liveMesses.forEach(mess => {
+    const isSoldOut = mess.isOpen && mess.walkInPlates <= 0;
+    const isClosed = !mess.isOpen;
+    const openLabel = isClosed ? "Closed" : "Open";
+    const openClass = isClosed ? "closed" : "open";
+    
+    let contractBadge = `<span class="contract-status-badge walkin">Walk-in Only</span>`;
+    if (AppState.activeStudent && AppState.activeStudent.contractMessId === mess.id) {
+      contractBadge = `<span class="contract-status-badge subscribed">&#10003; Subscribed</span>`;
+    }
 
     const card = document.createElement("div");
-    card.className = "mess-card" + (isSoldOut ? " sold-out-card" : "");
+    card.className = `mess-card${isSoldOut ? " sold-out-card" : ""}`;
     card.id = `card-${mess.id}`;
     card.setAttribute("data-mess-id", mess.id);
 
     if (isSoldOut) {
+      card.style.pointerEvents = "none";
       card.innerHTML = `
-        <div class="sold-out-badge">🚫 Sold Out for Walk-Ins</div>
+        <div class="sold-out-ribbon">&#128683; SOLD OUT</div>
         <div class="mess-card-emoji">${mess.emoji}</div>
         <div class="mess-card-body">
           <div class="mess-card-top">
-            <div class="mess-card-name">${mess.name}</div>
+            <div class="mess-card-name">${escapeHtml(mess.name)} ${contractBadge}</div>
             <div class="open-badge closed"><span class="badge-dot closed"></span>Walk-In Full</div>
           </div>
           <div class="mess-card-meta">
-            <div class="mess-meta-pill"><span class="star">★</span><span class="mess-rating-val">${mess.rating.toFixed(2)}</span></div>
-            <div class="mess-meta-pill">📍 ${mess.distance}</div>
-            <div class="mess-meta-pill"><span class="walkin-pill-count">0</span><span class="walkin-pill-label">&nbsp;walk-in plates</span></div>
+            <div class="mess-meta-pill"><span class="star">&#9733;</span><span class="mess-rating-val">${mess.baselineRating.toFixed(2)}</span></div>
+            <div class="mess-meta-pill">&#128205; ${escapeHtml(mess.distanceOffset)}</div>
+            <div class="mess-meta-pill"><span class="walkin-pill-count">0</span><span class="walkin-pill-label">&nbsp;plates left</span></div>
           </div>
-          <div class="mess-card-actions">
-            <button class="btn-menu" onclick="openMenuModal('${mess.id}')">📋 Today's Menu</button>
-            <button class="btn-navigate" onclick="navigateTo('${mess.id}')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Navigate
-            </button>
-          </div>
+          <div class="mess-card-actions"><button class="btn-menu" onclick="openMenuModal('${mess.id}')">&#128203; Menu</button></div>
         </div>`;
-      card.style.cssText = "filter:blur(2px);opacity:0.5;position:relative;";
-      const badge = card.querySelector(".sold-out-badge");
-      if (badge) { badge.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.14);border:2px solid rgba(239,68,68,0.4);border-radius:14px;z-index:5;font-size:0.78rem;font-weight:800;color:#EF4444;text-transform:uppercase;letter-spacing:1.5px;pointer-events:none;"; }
     } else {
-      const openLabel = isClosedFully ? "Closed" : "Open";
-      const openClass = isClosedFully ? "closed" : "open";
       card.innerHTML = `
         <div class="mess-card-emoji">${mess.emoji}</div>
         <div class="mess-card-body">
           <div class="mess-card-top">
-            <div class="mess-card-name">${mess.name}</div>
+            <div class="mess-card-name">${escapeHtml(mess.name)} ${contractBadge}</div>
             <div class="open-badge ${openClass}"><span class="badge-dot ${openClass}"></span>${openLabel}</div>
           </div>
           <div class="mess-card-meta">
-            <div class="mess-meta-pill"><span class="star">★</span><span class="mess-rating-val">${mess.rating.toFixed(2)}</span></div>
-            <div class="mess-meta-pill">📍 ${mess.distance}</div>
-            <div class="mess-meta-pill"><span class="walkin-pill-count">${mess.walkInPlates}</span><span class="walkin-pill-label">&nbsp;walk-in plates</span></div>
+            <div class="mess-meta-pill"><span class="star">&#9733;</span><span class="mess-rating-val">${mess.baselineRating.toFixed(2)}</span></div>
+            <div class="mess-meta-pill">&#128205; ${escapeHtml(mess.distanceOffset)}</div>
+            <div class="mess-meta-pill"><span class="walkin-pill-count">${mess.walkInPlates}</span><span class="walkin-pill-label">&nbsp;plates left</span></div>
           </div>
           <div class="mess-card-actions">
-            <button class="btn-menu" onclick="openMenuModal('${mess.id}')">📋 Today's Menu</button>
-            <button class="btn-navigate" onclick="navigateTo('${mess.id}')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Navigate
-            </button>
+            <button class="btn-menu" onclick="openMenuModal('${mess.id}')">&#128203; Menu</button>
+            <button class="btn-navigate${AppState.activeMessId === mess.id ? ' active-nav' : ''}" onclick="navigateTo('${mess.id}')">&#128694; Navigate</button>
           </div>
         </div>`;
     }
@@ -456,187 +707,151 @@ function renderMessCards() {
   });
 }
 
-// ─── MENU MODAL ─────────────────────────────────────────────────
-function openMenuModal(messId) {
-  const mess = AppState.messes.find(m => m.id === messId);
-  if (!mess) return;
-
-  dom.menuMessName().textContent = mess.name;
-  dom.menuModalEmoji().textContent = mess.emoji;
-  dom.menuDateTag().textContent = nowDateStr();
-
-  const ul = dom.menuChecklist();
-  ul.innerHTML = "";
-  mess.menu.forEach(item => {
-    const li = document.createElement("li");
-    li.className = "menu-item";
-    li.innerHTML = `
-      <span class="menu-item-emoji">${item.emoji}</span>
-      <span class="menu-item-name">${item.name}</span>
-      <span class="menu-item-type type-${item.type}">${item.type === "veg" ? "Veg" : "Non-Veg"}</span>`;
-    ul.appendChild(li);
-  });
-
-  dom.menuModalOverlay().classList.add("active");
-}
-
-function closeMenuModal() {
-  dom.menuModalOverlay().classList.remove("active");
-}
-
-// ─── GOOGLE MAPS ─────────────────────────────────────────────────
-function initMap() {
-  try {
-    const mapEl = document.getElementById("map-canvas");
-    const placeholder = dom.mapPlaceholder();
-
-    const map = new google.maps.Map(mapEl, {
-      center: AppState.userLocation,
-      zoom: 15,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      styles: [
-        { featureType: "poi", stylers: [{ visibility: "off" }] },
-        { featureType: "transit", stylers: [{ visibility: "off" }] },
-        { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
-        { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-        { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-        { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9e8f5" }] },
-      ],
-    });
-
-    AppState.mapInstance = map;
-    AppState.directionsService = new google.maps.DirectionsService();
-    AppState.directionsRenderer = new google.maps.DirectionsRenderer({
-      map,
-      suppressMarkers: false,
-      polylineOptions: { strokeColor: "#FC8019", strokeWeight: 5, strokeOpacity: 0.85 },
-    });
-
-    // User marker
-    new google.maps.Marker({
-      position: AppState.userLocation,
-      map,
-      title: "Your Location",
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 9,
-        fillColor: "#2563EB",
-        fillOpacity: 1,
-        strokeColor: "#FFFFFF",
-        strokeWeight: 3,
-      },
-    });
-
-    // Mess markers
-    AppState.messes.forEach(mess => {
-      const marker = new google.maps.Marker({
-        position: { lat: mess.lat, lng: mess.lng },
-        map,
-        title: mess.name,
-        label: { text: mess.emoji || "🍱", fontSize: "20px" },
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 16,
-          fillColor: mess.isVendorMess ? "#FC8019" : "#FFFFFF",
-          fillOpacity: 1,
-          strokeColor: "#FC8019",
-          strokeWeight: 2.5,
-        },
-      });
-
-      const infoWindow = new google.maps.InfoWindow({
-        content: `<div style="font-family:Inter,sans-serif;padding:4px 6px">
-          <strong style="font-size:13px;color:#282C3F">${mess.name}</strong><br>
-          <span style="color:#FC8019;font-weight:700">★ ${mess.rating.toFixed(2)}</span>
-          &nbsp;·&nbsp;<span style="color:#686B78;font-size:12px">${mess.distance}</span><br>
-          <span style="font-size:12px;color:#22C55E;font-weight:600">${mess.walkInPlates} walk-in plates</span>
-        </div>`,
-      });
-
-      marker.addListener("click", () => infoWindow.open(map, marker));
-      AppState.mapMarkers.push({ marker, mess });
-    });
-
-    // Hide placeholder when map loads
-    if (placeholder) placeholder.style.display = "none";
-  } catch (e) {
-    console.warn("Maps init error:", e);
+function openMenuModal(id) {
+  const m = AppState.liveMesses.find(x => x.id === id);
+  if (!m) return;
+  const n = dom.menuMessName(); if (n) n.textContent = m.name;
+  const e = dom.menuModalEmoji(); if (e) e.textContent = m.emoji;
+  const d = dom.menuDateTag(); if (d) d.textContent = nowDateStr();
+  const list = dom.menuChecklist();
+  if (list) {
+    list.innerHTML = m.menu.map((i, idx) => `
+      <li class="menu-item">
+        <input type="checkbox" id="mi-${id}-${idx}" style="accent-color:#FC8019;width:15px;height:15px;flex-shrink:0;" />
+        <span class="menu-item-emoji">${i.emoji}</span>
+        <label class="menu-item-name" for="mi-${id}-${idx}">${escapeHtml(i.name)}</label>
+        <span class="menu-item-type type-${i.type}">${i.type === "veg" ? "Veg" : "Non-Veg"}</span>
+      </li>
+    `).join("");
   }
+  const ov = dom.menuModalOverlay(); if (ov) ov.classList.add("active");
 }
-
-function handleMapError() {
-  console.warn("Google Maps API failed to load. Using visual placeholder.");
-}
-
-function navigateTo(messId) {
-  const mess = AppState.messes.find(m => m.id === messId);
-  if (!mess) return;
-
-  if (!AppState.mapInstance || !AppState.directionsService) {
-    // Scroll to map and show placeholder hint
-    const mapSection = document.querySelector(".map-section");
-    if (mapSection) mapSection.scrollIntoView({ behavior: "smooth" });
-    alert(`Navigation to ${mess.name} — Add a valid Google Maps API key in app.js to enable live routing.`);
-    return;
-  }
-
-  const request = {
-    origin: AppState.userLocation,
-    destination: { lat: mess.lat, lng: mess.lng },
-    travelMode: google.maps.TravelMode.WALKING,
-  };
-
-  AppState.directionsService.route(request, (result, status) => {
-    if (status === "OK") {
-      AppState.directionsRenderer.setDirections(result);
-      const mapSection = document.querySelector(".map-section");
-      if (mapSection) mapSection.scrollIntoView({ behavior: "smooth" });
-    } else {
-      alert(`Could not get walking route: ${status}`);
-    }
-  });
-}
-
-// ─── EVENT WIRING ───────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-
-  // Vendor buttons
-  document.getElementById("contract-plus-btn").addEventListener("click", openQRModal);
-  document.getElementById("contract-minus-btn").addEventListener("click", contractMinus);
-  document.getElementById("walkin-plus-btn").addEventListener("click", () => { walkinPlus(); rerouteShown = false; });
-  document.getElementById("walkin-minus-btn").addEventListener("click", walkinMinus);
-
-  // QR modal
-  document.getElementById("qr-modal-close").addEventListener("click", closeQRModal);
-  document.getElementById("simulate-scan-btn").addEventListener("click", simulateScan);
-  document.getElementById("qr-modal-overlay").addEventListener("click", e => {
-    if (e.target === e.currentTarget) closeQRModal();
-  });
-
-  // Menu modal
-  document.getElementById("menu-modal-close").addEventListener("click", closeMenuModal);
-  document.getElementById("menu-modal-overlay").addEventListener("click", e => {
-    if (e.target === e.currentTarget) closeMenuModal();
-  });
-
-  // Toast dismiss
-  document.getElementById("toast-close-btn").addEventListener("click", () => {
-    dom.rerouteToast().classList.remove("visible");
-  });
-
-  // ESC closes modals
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape") { closeQRModal(); closeMenuModal(); }
-  });
-
-  // Initial render
-  renderMessCards();
-  tickClock();
-});
-
-// ─── EXPOSE TO GLOBAL (for initMap callback + inline handlers) ──
-window.AppController = { initMap, handleMapError };
 window.openMenuModal = openMenuModal;
-window.navigateTo = navigateTo;
+
+// ─── VENDOR OPERATIONS & CONTRACT IMMUNITY ────────────────────────────────────
+function contractPlus() {
+  AppState.tokenCounter++;
+  const t = `MC-${padNum(AppState.tokenCounter)}-${nowDateStr().replace(/[,\s]/g, "").toUpperCase()}`;
+  AppState.activeQRToken = t;
+  const idEl = dom.tokenIdDisplay(); if (idEl) idEl.textContent = `TOKEN #${padNum(AppState.tokenCounter)}`;
+  const dtEl = dom.tokenDateDisplay(); if (dtEl) dtEl.textContent = `${nowDateStr()} — ${nowTimeStr()}`;
+  const ring = dom.qrLoadingRing(); const canvas = dom.qrCanvas();
+  if (ring) ring.classList.remove("hidden"); if (canvas) canvas.style.opacity = "0";
+  setTimeout(() => {
+    if (canvas) { drawQROnCanvas(canvas, t); canvas.style.transition = "opacity 0.3s"; canvas.style.opacity = "1"; }
+    if (ring) ring.classList.add("hidden");
+  }, 600);
+  const ov = dom.qrModalOverlay(); if (ov) ov.classList.add("active");
+}
+
+function contractMinus() {
+  if (AppState.contractMealsToday <= 0) return;
+  AppState.contractMealsToday--;
+  const el = dom.contractCount(); if (el) { el.textContent = AppState.contractMealsToday; animateCounter(el); }
+}
+
+function simulateScan() {
+  const ov = dom.qrModalOverlay(); if (ov) ov.classList.remove("active");
+  
+  let student = AppState.activeStudent;
+  if (!student) student = randomFrom(APP_CONFIG.mockStudents);
+
+  student.hasEatenToday = true;
+  if (student.mealsRemaining > 0) student.mealsRemaining--;
+
+  const token = AppState.activeQRToken || `MC-0001`;
+  AppState.contractMealsToday++;
+  const countEl = dom.contractCount(); if (countEl) { countEl.textContent = AppState.contractMealsToday; animateCounter(countEl); }
+  
+  const tbody = dom.feedTbody(); const empty = dom.feedEmptyRow();
+  if (empty) empty.remove();
+  AppState.recentlyEaten.unshift({name: student.name, id: student.studentId, token, time: nowTimeStr()});
+  
+  const tr = document.createElement("tr"); tr.className = "feed-new-row";
+  tr.innerHTML = `<td>${AppState.recentlyEaten.length}</td><td class="feed-student-name">${escapeHtml(student.name)}<br><span style="font-size:0.5rem;font-weight:400;color:rgba(255,255,255,0.4)">${student.studentId} | Bal: ${student.mealsRemaining}</span></td><td class="feed-token">${escapeHtml(token)}</td><td class="feed-time">${escapeHtml(nowTimeStr())}</td>`;
+  tbody.insertBefore(tr, tbody.firstChild);
+  const b = dom.feedCountBadge(); if (b) b.textContent = AppState.recentlyEaten.length;
+}
+
+function drawQROnCanvas(canvas, str) {
+  const ctx = canvas.getContext("2d"); const size = canvas.width;
+  ctx.clearRect(0, 0, size, size); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, size, size);
+  const cs = 10; const cols = size / cs; let seed = 0;
+  for (let i = 0; i < str.length; i++) seed += str.charCodeAt(i) * (i + 1);
+  const sRand = (x, y) => { const n = Math.sin(seed + x * 127.1 + y * 311.7) * 43758.54; return n - Math.floor(n); };
+  for (let r = 0; r < cols; r++) {
+    for (let c = 0; c < cols; c++) {
+      if ((c<8&&r<8) || (c>=cols-8&&r<8) || (c<8&&r>=cols-8)) continue;
+      if (sRand(c, r) > 0.45) { ctx.fillStyle = "#1C1C2E"; ctx.fillRect(c * cs + 1, r * cs + 1, cs - 2, cs - 2); }
+    }
+  }
+  const dF = (cx, cy) => { ctx.fillStyle = "#1C1C2E"; ctx.fillRect(cx, cy, cs * 7, cs * 7); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(cx + cs, cy + cs, cs * 5, cs * 5); ctx.fillStyle = "#1C1C2E"; ctx.fillRect(cx + cs * 2, cy + cs * 2, cs * 3, cs * 3); };
+  dF(0, 0); dF((cols - 7) * cs, 0); dF(0, (cols - 7) * cs);
+  ctx.fillStyle = "#FC8019"; ctx.fillRect(0, size - 6, size, 6);
+  ctx.fillStyle = "rgba(28,28,46,0.2)"; ctx.font = "bold 9px monospace"; ctx.textAlign = "center"; ctx.fillText(str, size / 2, size - 12);
+}
+
+function walkinPlus() { if (AppState.walkInAvailable < AppState.walkInMax) { AppState.walkInAvailable++; AppState.rerouteShown = false; const b = dom.walkinSoldBanner(); if (b) b.style.display = "none"; syncWalkInUI(); } }
+function walkinMinus() { if (AppState.walkInAvailable > 0) { AppState.walkInAvailable--; syncWalkInUI(); } }
+function syncWalkInUI() {
+  const count = AppState.walkInAvailable; const max = AppState.walkInMax;
+  const pct = max > 0 ? Math.max(0, Math.round((count / max) * 100)) : 0;
+  const cEl = dom.walkinCount(); if (cEl) { cEl.textContent = count; animateCounter(cEl); }
+  const bar = dom.walkinProgress(); if (bar) { bar.style.width = pct + "%"; bar.classList.toggle("danger", count <= 5); }
+  const stat = dom.walkinStatusText(); if (stat) { if (count <= 0) stat.textContent = "Sold out!"; else if (count <= 5) stat.textContent = `Only ${count} left!`; else stat.textContent = `${count} of ${max} remaining`; }
+  const pEl = dom.walkinPctText(); if (pEl) pEl.textContent = pct + "%";
+
+  const vMess = AppState.liveMesses.find(m => m.isVendorMess);
+  if (vMess) {
+    vMess.walkInPlates = count;
+    renderMessCards();
+    if (count <= 0 && !AppState.rerouteShown) {
+      AppState.rerouteShown = true;
+      const soldCard = document.getElementById(`card-${vMess.id}`);
+      if (soldCard) {
+        soldCard.classList.add("sold-out-card"); soldCard.style.pointerEvents = "none";
+        if (!soldCard.querySelector(".sold-out-ribbon")) { const r = document.createElement("div"); r.className="sold-out-ribbon"; r.textContent="🚫 SOLD OUT"; soldCard.appendChild(r); }
+      }
+      const banner = dom.walkinSoldBanner(); if (banner) banner.style.display = "flex";
+      const nextMess = AppState.liveMesses.find(m => !m.isVendorMess && m.isOpen && m.walkInPlates > 0);
+      const msg = dom.toastMsg();
+      if (msg) msg.textContent = `${vMess.name} walk-in plates are finished! Automatically rerouting your search to ${nextMess ? nextMess.name : "another mess"}...`;
+      const t = dom.rerouteToast(); if (t) { t.classList.add("visible"); setTimeout(()=>t.classList.remove("visible"), 8000); }
+    }
+  }
+}
+
+// ─── INIT WIRING ──────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  // Role Gate
+  dom.gateOwnerBtn()?.addEventListener("click", showOwnerPanel);
+  dom.gateCustomerBtn()?.addEventListener("click", showCustomerPanel);
+  dom.devBypassBtn()?.addEventListener("click", executeDevBypass);
+  
+  dom.pinSubmitBtn()?.addEventListener("click", submitOwnerPin);
+  dom.pinInput()?.addEventListener("keydown", e => { if (e.key === "Enter" || (e.key!=="Backspace" && e.target.value.length >= 3)) setTimeout(submitOwnerPin, 0); });
+
+  dom.studentIdInput()?.addEventListener("keydown", e => { if (e.key === "Enter") submitStudentLogin(); });
+  document.getElementById("student-login-btn")?.addEventListener("click", submitStudentLogin);
+
+  // Vendor UI
+  document.getElementById("contract-plus-btn")?.addEventListener("click", contractPlus);
+  document.getElementById("contract-minus-btn")?.addEventListener("click", contractMinus);
+  document.getElementById("walkin-plus-btn")?.addEventListener("click", walkinPlus);
+  document.getElementById("walkin-minus-btn")?.addEventListener("click", walkinMinus);
+  document.getElementById("simulate-scan-btn")?.addEventListener("click", simulateScan);
+  
+  const m1 = document.getElementById("qr-modal-close"); if(m1) m1.addEventListener("click", () => dom.qrModalOverlay().classList.remove("active"));
+  const m2 = document.getElementById("menu-modal-close"); if(m2) m2.addEventListener("click", () => dom.menuModalOverlay().classList.remove("active"));
+
+  document.getElementById("vendor-logout-btn")?.addEventListener("click", logout);
+  document.getElementById("switch-role-btn-desktop")?.addEventListener("click", logout);
+
+  // Nav Pills
+  dom.navModePills()?.addEventListener("click", e => { const pill = e.target.closest(".nav-pill"); if(pill) setNavMode(pill.getAttribute("data-mode")); });
+  document.getElementById("route-clear-btn")?.addEventListener("click", clearRoute);
+  document.getElementById("toast-close-btn")?.addEventListener("click", () => dom.rerouteToast().classList.remove("visible"));
+
+  initAPISearch();
+  showView("gate");
+});

@@ -1,307 +1,368 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mess'ed Call — Vendor &amp; Consumer Dashboard</title>
-  <meta name="description" content="Real-time mess management platform connecting vendors and students with live meal tracking, walk-in counters, and map navigation." />
+  <title>Mess'ed Call — Smart Mess Platform</title>
+  <meta name="description" content="Real-time mess management. Vendor operations, API College search, and free interactive routing map for students." />
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- LEAFLET.JS — Free interactive map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <!-- LEAFLET ROUTING MACHINE — OSRM-powered free routing -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- GLOBAL TOPBAR -->
-  <header class="global-topbar">
-    <div class="topbar-brand">
-      <div class="brand-logo">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <rect width="28" height="28" rx="8" fill="#FC8019"/>
-          <path d="M7 10h14M7 14h10M7 18h12" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <span class="brand-name">Mess<span class="brand-accent">'ed</span> Call</span>
-      <span class="brand-tag">Operations Center</span>
-    </div>
-    <div class="topbar-meta">
-      <div class="live-pill"><span class="live-dot"></span><span>LIVE</span></div>
-      <div class="topbar-time" id="live-clock">--:--</div>
-      <div class="topbar-date" id="live-date">--</div>
-    </div>
-  </header>
+  <!-- VIEW 1 — ROLE GATE (Initial / Unauthenticated) -->
+  <div class="role-gate-screen" id="role-gate-screen" role="main" aria-label="Role selection">
+    <div class="gate-blob gate-blob-1" aria-hidden="true"></div>
+    <div class="gate-blob gate-blob-2" aria-hidden="true"></div>
+    <div class="gate-blob gate-blob-3" aria-hidden="true"></div>
 
-  <!-- MAIN SPLIT -->
-  <main class="split-container">
-
-    <!-- ═══ LEFT: VENDOR PANEL ═══ -->
-    <section class="panel vendor-panel" id="vendor-panel" aria-label="Vendor Operations Dashboard">
-
-      <div class="panel-header vendor-header">
-        <div class="panel-title-group">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#FC8019" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="9 22 9 12 15 12 15 22" stroke="#FC8019" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <div class="gate-card" id="gate-card">
+      <div class="gate-brand" aria-label="Mess'ed Call brand">
+        <div class="gate-logo" aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="12" fill="#FC8019"/>
+            <path d="M10 13h20M10 20h14M10 27h17" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
           </svg>
-          <h1 class="panel-title">Vendor Control</h1>
         </div>
-        <div class="panel-subtitle">Mess A — Green Campus Kitchen</div>
+        <div class="gate-brand-text">
+          <div class="gate-brand-name">Mess<span class="brand-accent">'ed</span> Call</div>
+          <div class="gate-brand-sub">Smart Mess Platform</div>
+        </div>
       </div>
 
-      <!-- TOP HALF: CONTRACT POOL -->
-      <div class="vendor-half contract-half" id="contract-pool">
-        <div class="half-header">
-          <div class="half-label contract-label">
-            <span class="half-icon">📋</span><span>Contract Pool</span>
-          </div>
-          <div class="counter-display contract-counter">
-            <span class="counter-value" id="contract-count">0</span>
-            <span class="counter-unit">meals taken today</span>
-          </div>
-        </div>
+      <h1 class="gate-heading">Are you a&hellip;</h1>
+      <p class="gate-subheading">Select your role to access your personalized dashboard</p>
 
-        <div class="big-btn-row">
-          <button class="mega-btn contract-minus" id="contract-minus-btn" aria-label="Decrease contract meal count">
-            <span class="btn-symbol">−</span>
-          </button>
-          <button class="mega-btn contract-plus" id="contract-plus-btn" aria-label="Issue QR token for contract meal">
-            <span class="btn-symbol">+</span>
-            <span class="btn-hint">Issue Token</span>
-          </button>
-        </div>
-
-        <!-- Recently Eaten Feed -->
-        <div class="feed-panel" id="recently-eaten-panel">
-          <div class="feed-header">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#60a5fa" stroke-width="2"/>
-              <polyline points="12 6 12 12 16 14" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+      <div class="gate-options" role="group" aria-label="Role selection">
+        <!-- OWNER CARD -->
+        <button class="gate-option-card owner-card" id="gate-owner-btn" aria-label="Continue as Owner">
+          <div class="option-icon-wrap owner-icon-wrap" aria-hidden="true">
+            <svg width="54" height="54" viewBox="0 0 54 54" fill="none">
+              <circle cx="27" cy="27" r="27" fill="rgba(252,128,25,0.10)"/>
+              <path d="M19 38h16v-2a6 6 0 006-6 6 6 0 00-5-5.91V23a6 6 0 00-12 0v.09A6 6 0 0013 29a6 6 0 006 6v3z" fill="#FC8019" opacity="0.85"/>
+              <rect x="19" y="36" width="16" height="4" rx="2" fill="#FC8019"/>
+              <path d="M23 30h8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
             </svg>
-            <span>Recently Eaten</span>
-            <span class="feed-count-badge" id="feed-count-badge">0</span>
           </div>
-          <div class="feed-table-wrap">
-            <table class="feed-table" id="feed-table">
-              <thead>
-                <tr><th>#</th><th>Student</th><th>Token</th><th>Time</th></tr>
-              </thead>
-              <tbody id="feed-tbody">
-                <tr class="feed-empty-row" id="feed-empty-row">
-                  <td colspan="4">No meals logged yet. Issue a token to begin.</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="option-label">Owner</div>
+          <div class="option-sublabel">Manage contracts &amp; tokens</div>
+          <div class="option-badge owner-badge">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            PIN Protected
           </div>
+        </button>
+
+        <!-- CUSTOMER CARD -->
+        <button class="gate-option-card customer-card" id="gate-customer-btn" aria-label="Continue as Customer">
+          <div class="option-icon-wrap customer-icon-wrap" aria-hidden="true">
+            <svg width="54" height="54" viewBox="0 0 54 54" fill="none">
+              <circle cx="27" cy="27" r="27" fill="rgba(34,197,94,0.10)"/>
+              <circle cx="27" cy="19" r="7" fill="#22C55E" opacity="0.85"/>
+              <path d="M14 42c0-7.18 5.82-13 13-13s13 5.82 13 13" fill="#22C55E" opacity="0.6"/>
+              <rect x="19" y="36" width="16" height="3" rx="1.5" fill="#22C55E"/>
+              <circle cx="23" cy="36" r="1.5" fill="#fff"/>
+              <circle cx="27" cy="36" r="1.5" fill="#fff"/>
+              <circle cx="31" cy="36" r="1.5" fill="#fff"/>
+            </svg>
+          </div>
+          <div class="option-label">Customer</div>
+          <div class="option-sublabel">Discover messes &amp; routes</div>
+          <div class="option-badge customer-badge">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Student Login
+          </div>
+        </button>
+      </div>
+
+      <!-- PIN Entry Panel (Owner) -->
+      <div class="pin-panel" id="pin-panel" aria-hidden="true">
+        <div class="pin-panel-inner">
+          <div class="pin-panel-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="#FC8019" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#FC8019" stroke-width="2" stroke-linecap="round"/></svg>
+            Enter Owner PIN
+          </div>
+          <div class="pin-input-row">
+            <input type="password" class="pin-input" id="pin-input" maxlength="4" placeholder="&#9679;&#9679;&#9679;&#9679;" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="4-digit owner PIN" />
+            <button class="pin-submit-btn" id="pin-submit-btn" aria-label="Submit PIN">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="pin-error-msg" id="pin-error-msg" role="alert" aria-live="assertive"></div>
+          <div class="pin-hint" id="pin-hint-text">Demo PIN: <strong>1234</strong></div>
         </div>
       </div>
 
-      <!-- BOTTOM HALF: WALK-IN POOL -->
-      <div class="vendor-half walkin-half" id="walkin-pool">
-        <div class="half-header">
-          <div class="half-label walkin-label">
-            <span class="half-icon">🚶</span><span>Walk-In Pool</span>
+      <!-- Student Login Panel -->
+      <div class="student-login-panel" id="student-login-panel" aria-hidden="true">
+        <div class="pin-panel-inner" style="border-color:rgba(34,197,94,0.3); background:linear-gradient(135deg,rgba(34,197,94,0.05),rgba(34,197,94,0.02));">
+          <div class="pin-panel-label" style="color:#22C55E;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="#22C55E" stroke-width="2" stroke-linecap="round"/></svg>
+            Student Authentication
           </div>
-          <div class="counter-display walkin-counter">
-            <span class="counter-value" id="walkin-count">20</span>
-            <span class="counter-unit">plates available</span>
+          <div class="student-input-group">
+            <input type="text" class="student-input" id="student-id-input" placeholder="Student ID (e.g. STU101)" autocomplete="off" />
+            <input type="text" class="student-input" id="contract-id-input" placeholder="Mess Contract ID (Optional)" autocomplete="off" />
+            <button class="student-login-btn" id="student-login-btn">Log In to Discover</button>
           </div>
-        </div>
-
-        <div class="big-btn-row walkin-btn-row">
-          <button class="mega-btn walkin-minus" id="walkin-minus-btn" aria-label="Decrease walk-in plate count">
-            <span class="btn-symbol">−</span>
-          </button>
-          <button class="mega-btn walkin-plus" id="walkin-plus-btn" aria-label="Increase walk-in plate count">
-            <span class="btn-symbol">+</span>
-          </button>
-        </div>
-
-        <div class="walkin-status-bar">
-          <div class="walkin-progress-wrap">
-            <div class="walkin-progress-track">
-              <div class="walkin-progress-fill" id="walkin-progress" style="width:100%"></div>
-            </div>
-            <span class="walkin-status-text" id="walkin-status-text">Fully stocked</span>
-          </div>
+          <div class="pin-error-msg" id="student-error-msg" role="alert" aria-live="assertive"></div>
+          <div class="pin-hint" style="margin-top:6px;">Demo IDs: Any unknown ID creates a new account</div>
         </div>
       </div>
 
-    </section>
+      <!-- 🚧 DEV BYPASS 🚧 -->
+      <div style="margin-top: 16px;">
+        <button id="dev-bypass-btn" style="width: 100%; padding: 12px; background: rgba(28,28,46,0.9); border: 2px dashed #FC8019; border-radius: 12px; color: #fff; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.85rem; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(252,128,25,0.2);">
+          <span>🚧</span> DEV BYPASS: Force Enter App
+        </button>
+      </div>
 
-    <!-- ═══ RIGHT: CONSUMER PANEL ═══ -->
-    <section class="panel consumer-panel" id="consumer-panel" aria-label="Consumer Discovery Panel">
+      <div class="gate-footer"><span class="gate-footer-text">Mess'ed Call &copy; 2026</span></div>
+    </div>
+  </div>
 
+
+  <!-- VIEW 2 — CUSTOMER VIEW (Navbar + Consumer Panel) -->
+  <div class="app-view customer-view" id="customer-view" aria-hidden="true">
+
+    <!-- Sticky Navigation Bar with OSM API Auto-Suggest Selector -->
+    <header class="global-topbar" id="global-topbar" role="banner">
+      <div class="topbar-brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+            <rect width="30" height="30" rx="8" fill="#FC8019"/>
+            <path d="M7 10h16M7 15h11M7 20h13" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="brand-name">Mess<span class="brand-accent">'ed</span></span>
+      </div>
+
+      <!-- Nationwide College Search Bar (API) -->
+      <div class="topbar-college-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#FC8019" stroke-width="2"/><circle cx="12" cy="10" r="3" stroke="#FC8019" stroke-width="2"/></svg>
+        <div class="college-search-wrapper">
+          <input type="text" id="college-search-input" placeholder="Search any university/college in India..." autocomplete="off" aria-label="Search University">
+          <div class="search-loader" id="search-loader" style="display:none;"></div>
+          <ul class="college-suggestions" id="college-suggestions"></ul>
+        </div>
+      </div>
+
+      <div class="topbar-meta">
+        <!-- Student Identity Profile -->
+        <div class="student-profile" id="student-profile">
+          <div class="student-avatar" id="nav-student-avatar">R</div>
+          <div class="student-info">
+            <div class="student-name" id="nav-student-name">Rahul Sharma</div>
+            <div class="student-id" id="nav-student-id">STU101</div>
+          </div>
+        </div>
+
+        <div class="live-pill" id="gps-status-pill"><span class="live-dot" aria-hidden="true"></span><span id="gps-status-text">GPS LIVE</span></div>
+        <button class="switch-role-btn" id="switch-role-btn-desktop" aria-label="Log out and return to role selection">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Log Out
+        </button>
+      </div>
+    </header>
+
+    <!-- Consumer Discovery Panel -->
+    <section class="consumer-panel" id="consumer-panel" aria-label="Consumer Discovery Panel">
+      
       <!-- Reroute Toast -->
-      <div class="reroute-toast" id="reroute-toast" role="alert" aria-live="assertive">
-        <div class="toast-icon">🔄</div>
+      <div class="reroute-toast" id="reroute-toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-icon" aria-hidden="true">&#128260;</div>
         <div class="toast-body">
           <div class="toast-title">Auto-Rerouting!</div>
-          <div class="toast-msg" id="toast-msg">Walk-in plates finished! Redirecting to next available mess.</div>
+          <div class="toast-msg" id="toast-msg">Walk-in plates finished — redirecting to next mess.</div>
         </div>
-        <button class="toast-close" id="toast-close-btn" aria-label="Dismiss">✕</button>
-      </div>
-
-      <!-- Consumer Topbar -->
-      <div class="consumer-topbar">
-        <div class="consumer-location">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#FC8019" stroke-width="2"/>
-            <circle cx="12" cy="10" r="3" stroke="#FC8019" stroke-width="2"/>
-          </svg>
-          <span>BITS Pilani Campus</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <polyline points="6 9 12 15 18 9" stroke="#282C3F" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="consumer-search-wrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="8" stroke="#9ca3af" stroke-width="2"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <input type="text" class="consumer-search" placeholder="Search messes, menus…" aria-label="Search messes" id="mess-search" />
-        </div>
+        <button class="toast-close" id="toast-close-btn" aria-label="Dismiss">&#x2715;</button>
       </div>
 
       <div class="consumer-scroll" id="consumer-scroll">
-
-        <!-- LEADERBOARD -->
-        <section class="leaderboard-section" aria-labelledby="leaderboard-heading">
+        <!-- LEADERBOARD PODIUM -->
+        <section class="leaderboard-section" id="leaderboard-section">
           <div class="section-label-row">
-            <span class="section-chip">🏆</span>
-            <h2 class="section-heading" id="leaderboard-heading">Weekly Leaderboard</h2>
+            <span class="section-chip">&#127942;</span>
+            <h2 class="section-heading">Weekly Leaderboard</h2>
             <span class="section-sub">Top rated this week</span>
           </div>
-          <div class="podium-container" id="podium-container">
-            <div class="podium-card silver" id="podium-2nd">
-              <div class="podium-rank silver-rank">2</div>
-              <div class="podium-avatar">🍛</div>
-              <div class="podium-name">Shanti Mess</div>
-              <div class="podium-rating"><span class="podium-star orange-star">★</span><span class="podium-score">4.60</span><span class="podium-max">/ 5.0</span></div>
-              <div class="podium-votes">218 ratings</div>
-              <div class="podium-pillar silver-pillar">2<sup>nd</sup></div>
-            </div>
-            <div class="podium-card gold" id="podium-1st">
-              <div class="podium-crown">👑</div>
-              <div class="podium-rank gold-rank">1</div>
-              <div class="podium-avatar">🍱</div>
-              <div class="podium-name">Green Campus Kitchen</div>
-              <div class="podium-rating"><span class="podium-star gold-star">★</span><span class="podium-score">4.85</span><span class="podium-max">/ 5.0</span></div>
-              <div class="podium-votes">341 ratings</div>
-              <div class="podium-pillar gold-pillar">1<sup>st</sup></div>
-            </div>
-            <div class="podium-card bronze" id="podium-3rd">
-              <div class="podium-rank bronze-rank">3</div>
-              <div class="podium-avatar">🥘</div>
-              <div class="podium-name">Rajdhani Thali</div>
-              <div class="podium-rating"><span class="podium-star orange-star">★</span><span class="podium-score">4.40</span><span class="podium-max">/ 5.0</span></div>
-              <div class="podium-votes">187 ratings</div>
-              <div class="podium-pillar bronze-pillar">3<sup>rd</sup></div>
-            </div>
+          <div class="podium-container" role="list" id="podium-container">
+            <!-- Dynamically populated -->
           </div>
         </section>
 
         <!-- DISCOVERY FEED -->
-        <section class="discovery-section" aria-labelledby="discovery-heading">
+        <section class="discovery-section" id="discovery-section">
           <div class="section-label-row">
-            <span class="section-chip">📍</span>
-            <h2 class="section-heading" id="discovery-heading">Messes Near You</h2>
-            <span class="section-sub">Within 1 km · sorted by rating</span>
+            <span class="section-chip">&#128205;</span>
+            <h2 class="section-heading">Messes Near <span id="current-college-name">Selected Location</span></h2>
+            <span class="section-sub">Within 5 km</span>
           </div>
-          <div class="mess-cards-list" id="mess-cards-list"></div>
+          <div class="mess-cards-list" id="mess-cards-list" role="list"></div>
         </section>
 
-        <!-- MAP -->
-        <section class="map-section" aria-labelledby="map-heading">
+        <!-- FREE LEAFLET MAP SECTION -->
+        <section class="map-section" id="map-section">
           <div class="section-label-row">
-            <span class="section-chip">🗺️</span>
-            <h2 class="section-heading" id="map-heading">Live Map</h2>
-            <span class="section-sub">Walking routes from your location</span>
+            <span class="section-chip">&#128506;</span>
+            <h2 class="section-heading">Live Map &amp; Navigation</h2>
+            <span class="section-sub">GPS Active</span>
+          </div>
+          <div class="nav-mode-pills" id="nav-mode-pills" role="group">
+            <button class="nav-pill active" id="pill-walk" data-mode="foot" aria-pressed="true">&#128694; Walking</button>
+            <button class="nav-pill" id="pill-bike" data-mode="bike" aria-pressed="false">&#128692; Biking</button>
+            <button class="nav-pill" id="pill-drive" data-mode="car" aria-pressed="false">&#128664; Driving</button>
           </div>
           <div class="map-canvas-wrap">
-            <div id="map-canvas" aria-label="Google Maps mess locations"></div>
-            <div class="map-placeholder" id="map-placeholder">
-              <div class="map-placeholder-inner">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#FC8019" stroke-width="1.5"/>
-                  <circle cx="12" cy="10" r="3" stroke="#FC8019" stroke-width="1.5"/>
-                </svg>
-                <p>Map loading… Add your Google Maps API key in <code>app.js</code></p>
-                <div class="map-mock-pins" id="map-mock-pins">
-                  <div class="mock-pin pin-1" title="Green Campus Kitchen">🍱<span>4.85★</span></div>
-                  <div class="mock-pin pin-2" title="Shanti Mess">🍛<span>4.6★</span></div>
-                  <div class="mock-pin pin-3" title="Rajdhani Thali">🥘<span>4.4★</span></div>
-                  <div class="mock-pin pin-4" title="Vrindavan Mess">🫕<span>4.2★</span></div>
-                </div>
+            <div id="map-canvas" aria-label="Interactive Leaflet map"></div>
+          </div>
+          <div class="route-info-bar" id="route-info-bar" style="display:none" aria-live="polite">
+            <div class="route-info-inner">
+              <div class="route-info-destination" id="route-destination">—</div>
+              <div class="route-info-meta">
+                <span id="route-distance">—</span> &middot; <span id="route-duration">—</span>
               </div>
             </div>
+            <button class="route-clear-btn" id="route-clear-btn">&#x2715; Clear Route</button>
           </div>
         </section>
-
       </div>
     </section>
+  </div>
 
-  </main>
 
-  <!-- QR MODAL -->
-  <div class="modal-overlay" id="qr-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
-    <div class="modal-card qr-modal-card" id="qr-modal-card">
-      <div class="modal-header">
-        <div class="modal-title-group">
-          <span class="modal-icon-badge">📱</span>
-          <h2 class="modal-title" id="qr-modal-title">Digital Meal Token</h2>
+  <!-- VIEW 3 — VENDOR / OWNER VIEW (Full Screen) -->
+  <div class="app-view vendor-view" id="vendor-view" aria-hidden="true">
+    <header class="vendor-topbar" role="banner">
+      <div class="vendor-topbar-brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none"><rect width="30" height="30" rx="8" fill="#FC8019"/><path d="M7 10h16M7 15h11M7 20h13" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
         </div>
-        <button class="modal-close-btn" id="qr-modal-close" aria-label="Close">✕</button>
+        <div>
+          <span class="brand-name">Mess<span class="brand-accent">'ed</span></span>
+          <span class="vendor-topbar-sub">Owner Dashboard</span>
+        </div>
+      </div>
+      <div class="vendor-topbar-right">
+        <button class="vendor-logout-btn" id="vendor-logout-btn" aria-label="Log out">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Log Out
+        </button>
+      </div>
+    </header>
+
+    <main class="vendor-split">
+      <!-- LEFT — CONTRACT POOL -->
+      <section class="vendor-half contract-half" id="contract-pool">
+        <div class="half-header">
+          <div class="half-label contract-label"><span class="half-icon">&#128203;</span> Contract Pool</div>
+          <div class="counter-display contract-counter">
+            <span class="counter-value" id="contract-count" aria-live="polite">0</span>
+            <span class="counter-unit">meals today</span>
+          </div>
+        </div>
+        <div class="contract-subtitle-row">
+          <span class="contract-tag">Contract Meals Taken Today</span>
+          <span class="contract-immunity-badge">&#128274; QR Protected</span>
+        </div>
+        <div class="big-btn-row">
+          <button class="mega-btn contract-minus" id="contract-minus-btn"><span class="btn-symbol">&minus;</span></button>
+          <button class="mega-btn contract-plus" id="contract-plus-btn"><span class="btn-symbol">+</span><span class="btn-hint">Issue Token</span></button>
+        </div>
+        <div class="feed-panel">
+          <div class="feed-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#60a5fa" stroke-width="2"/><polyline points="12 6 12 12 16 14" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Live Check-in Log</span>
+            <span class="feed-count-badge" id="feed-count-badge">0</span>
+          </div>
+          <div class="feed-table-wrap">
+            <table class="feed-table">
+              <thead><tr><th>#</th><th>Student</th><th>Token</th><th>Time</th></tr></thead>
+              <tbody id="feed-tbody">
+                <tr class="feed-empty-row" id="feed-empty-row"><td colspan="4">No meals logged yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT — WALK-IN POOL -->
+      <section class="vendor-half walkin-half" id="walkin-pool">
+        <div class="half-header">
+          <div class="half-label walkin-label"><span class="half-icon">&#128694;</span> Walk-In Pool</div>
+          <div class="counter-display walkin-counter">
+            <span class="counter-value" id="walkin-count" aria-live="polite">20</span>
+            <span class="counter-unit">plates available</span>
+          </div>
+        </div>
+        <div class="walkin-subtitle-row">
+          <span class="walkin-tag">Available Extra Walk-In Plates</span>
+          <span class="walkin-max-badge" id="walkin-max-badge">Max: 20</span>
+        </div>
+        <div class="big-btn-row walkin-btn-row">
+          <button class="mega-btn walkin-minus" id="walkin-minus-btn"><span class="btn-symbol">&minus;</span><span class="btn-hint">Serve</span></button>
+          <button class="mega-btn walkin-plus" id="walkin-plus-btn"><span class="btn-symbol">+</span><span class="btn-hint">Add</span></button>
+        </div>
+        <div class="walkin-status-bar">
+          <div class="walkin-progress-track">
+            <div class="walkin-progress-fill" id="walkin-progress" style="width:100%"></div>
+          </div>
+          <div class="walkin-status-footer">
+            <span class="walkin-status-text" id="walkin-status-text">Fully stocked</span>
+            <span class="walkin-pct-text" id="walkin-pct-text">100%</span>
+          </div>
+        </div>
+        <div class="walkin-sold-indicator" id="walkin-sold-indicator" style="display:none">
+          <span class="sold-dot"></span> Auto-reroute sent to students
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- SHARED MODALS -->
+  <div class="modal-overlay" id="qr-modal-overlay">
+    <div class="modal-card qr-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group"><span class="modal-icon-badge">&#128241;</span><h2 class="modal-title">Digital Token</h2></div>
+        <button class="modal-close-btn" id="qr-modal-close">&#x2715;</button>
       </div>
       <div class="modal-body">
-        <div class="token-meta">
-          <div class="token-chip" id="token-id-display">TOKEN #0001</div>
-          <div class="token-date" id="token-date-display">--</div>
-        </div>
-        <div class="qr-display-area" id="qr-display-area" aria-label="QR Code">
+        <div class="token-meta"><div class="token-chip" id="token-id-display">TOKEN #0001</div><div class="token-date" id="token-date-display">--</div></div>
+        <div class="qr-display-area">
           <div class="qr-loading-ring" id="qr-loading-ring"></div>
           <canvas id="qr-canvas" width="220" height="220"></canvas>
-          <div class="qr-corner qr-tl"></div>
-          <div class="qr-corner qr-tr"></div>
-          <div class="qr-corner qr-bl"></div>
-          <div class="qr-corner qr-br"></div>
         </div>
-        <p class="qr-instruction">Ask the student to scan with the <strong>Mess'ed Call app</strong></p>
-        <div class="modal-divider"><span>— or simulate —</span></div>
-        <button class="simulate-scan-btn" id="simulate-scan-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <rect x="7" y="7" width="10" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Simulate Student Scan (App Scanner)
-        </button>
-        <div class="scan-hint">Simulates a subscribed student scanning their contract QR</div>
+        <button class="simulate-scan-btn" id="simulate-scan-btn">Simulate Student App Scan</button>
       </div>
     </div>
   </div>
 
-  <!-- MENU MODAL -->
-  <div class="modal-overlay" id="menu-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="menu-modal-title">
-    <div class="modal-card menu-modal-card" id="menu-modal-card">
+  <div class="modal-overlay" id="menu-modal-overlay">
+    <div class="modal-card menu-modal-card">
       <div class="modal-header">
-        <div class="modal-title-group">
-          <span class="modal-icon-badge" id="menu-modal-emoji">🍱</span>
-          <h2 class="modal-title" id="menu-modal-title">Today's Menu</h2>
-        </div>
-        <button class="modal-close-btn" id="menu-modal-close" aria-label="Close">✕</button>
+        <div class="modal-title-group"><span class="modal-icon-badge" id="menu-modal-emoji">&#127857;</span><h2 class="modal-title">Today's Menu</h2></div>
+        <button class="modal-close-btn" id="menu-modal-close">&#x2715;</button>
       </div>
       <div class="modal-body">
-        <div class="menu-mess-name" id="menu-mess-name">Green Campus Kitchen</div>
+        <div class="menu-mess-name" id="menu-mess-name">Mess Name</div>
         <div class="menu-date-tag">Menu for <strong id="menu-date-tag">--</strong></div>
-        <ul class="menu-checklist" id="menu-checklist" aria-label="Today's menu"></ul>
-        <div class="menu-footer-note">✅ All meals prepared fresh. Contract students get priority serving.</div>
+        <ul class="menu-checklist" id="menu-checklist"></ul>
       </div>
     </div>
   </div>
 
-  <script>
-    function initMap() { if (window.AppController) window.AppController.initMap(); }
-  </script>
   <script src="app.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&callback=initMap&libraries=places" async defer onerror="window.AppController&&window.AppController.handleMapError()"></script>
 </body>
 </html>

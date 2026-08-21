@@ -1,0 +1,15 @@
+{
+  "name": "messed-call",
+  "version": "1.0.0",
+  "description": "Real-time mess management platform",
+  "main": "app.js",
+  "scripts": {
+    "dev": "serve ."
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
